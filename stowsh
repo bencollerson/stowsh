@@ -59,32 +59,33 @@ stowsh_install() {
     target=$( "$rpcmd" "${2-$PWD}" )
     local commands=()
 
-    cd "$pkg" || return 1
+    pushd "$pkg" > /dev/null || return 1
+        while IFS= read -r -d '' d; do
+            commands+=("mkdir -p '$target/$d'")
+        done < <($findcmd . -mindepth 1 -type d -print0 | sed "s|./||")
 
-    while IFS= read -r -d '' d; do
-        commands+=("mkdir -p '$target/$d'")
-    done < <($findcmd . -mindepth 1 -type d -print0 | sed "s|./||")
-
-    while IFS= read -r -d '' f; do
-        local targetf="$target/$f"
-        local thisdir
-        thisdir=$(dirname "$targetf")
-        local relative
-        relative=$($rpcmd "$f" --relative-to="$thisdir" --canonicalize-missing)
-        if [[ ! -f "$targetf" ]] ; then
-            commands+=("ln -s '$relative' '$targetf'")
-        else
-            echoerr "$targetf already exists."
-            if [[ ! $SKIP -eq 1 ]]; then
-                echoerr "Aborting. Rerun with the -s flag to skip errors.";
-                return
+        while IFS= read -r -d '' f; do
+            local targetf="$target/$f"
+            local thisdir
+            thisdir=$(dirname "$targetf")
+            local relative
+            relative=$($rpcmd "$f" --relative-to="$thisdir" --canonicalize-missing)
+            if [[ ! -f "$targetf" ]] ; then
+                commands+=("ln -s '$relative' '$targetf'")
+            else
+                echoerr "$targetf already exists."
+                if [[ ! $SKIP -eq 1 ]]; then
+                    echoerr "Aborting. Rerun with the -s flag to skip errors.";
+                    popd > /dev/null
+                    return
+                fi
             fi
-        fi
-    done < <($findcmd . -type f -print0 -or -type l -print0 | sed "s|./||")
+        done < <($findcmd . -type f -print0 -or -type l -print0 | sed "s|./||")
 
-    for cmd in "${commands[@]}"; do
-        _runcommands "$cmd"
-    done;
+        for cmd in "${commands[@]}"; do
+            _runcommands "$cmd"
+        done;
+    popd > /dev/null
 }
 
 stowsh_uninstall() {
@@ -94,34 +95,36 @@ stowsh_uninstall() {
     target=$( "$rpcmd" "${2-$PWD}" )
     local commands=()
 
-    cd "$pkg" || return 1
-
-    while IFS= read -r -d '' f; do
-        local targetf="$target/$f"
-        if [[ $($rpcmd "$targetf") == $($rpcmd "$f") ]] ; then
-            commands+=("rm '$targetf'")
-        elif [[ -f "$targetf" ]] ; then
-            echoerr "$targetf does not point to to $($rpcmd "$f")."
-            if [[ ! $SKIP -eq 1 ]]; then
-                echoerr "Aborting. Rerun with the -s flag to skip errors.";
-                return
+    pushd "$pkg" > /dev/null || return 1
+        while IFS= read -r -d '' f; do
+            local targetf="$target/$f"
+            if [[ $($rpcmd "$targetf") == $($rpcmd "$f") ]] ; then
+                commands+=("rm '$targetf'")
+            elif [[ -f "$targetf" ]] ; then
+                echoerr "$targetf does not point to to $($rpcmd "$f")."
+                if [[ ! $SKIP -eq 1 ]]; then
+                    echoerr "Aborting. Rerun with the -s flag to skip errors.";
+                    popd > /dev/null
+                    return
+                fi
+            elif [[ ! -f "$targetf" ]] ; then
+                echoerr "$targetf does not exist. Nothing to do."
+                if [[ ! $SKIP -eq 1 ]]; then
+                    echoerr "Aborting. Rerun with the -s flag to skip errors.";
+                    popd > /dev/null
+                    return
+                fi
             fi
-        elif [[ ! -f "$targetf" ]] ; then
-            echoerr "$targetf does not exist. Nothing to do."
-            if [[ ! $SKIP -eq 1 ]]; then
-                echoerr "Aborting. Rerun with the -s flag to skip errors.";
-                return
-            fi
-        fi
-    done < <($findcmd . -type f -print0 -or -type l -print0 | sed "s|./||")
+        done < <($findcmd . -type f -print0 -or -type l -print0 | sed "s|./||")
 
-    while IFS= read -r -d '' d; do
-        commands+=("[[ -d '$target/$d' ]] && $findcmd '$target/$d' -type d -empty -delete")
-    done < <($findcmd . -mindepth 1 -type d -print0 | sed "s|./||")
+        while IFS= read -r -d '' d; do
+            commands+=("[[ -d '$target/$d' ]] && $findcmd '$target/$d' -type d -empty -delete")
+        done < <($findcmd . -mindepth 1 -type d -print0 | sed "s|./||")
 
-    for cmd in "${commands[@]}"; do
-        _runcommands "$cmd"
-    done;
+        for cmd in "${commands[@]}"; do
+            _runcommands "$cmd"
+        done;
+    pushd > /dev/null
 }
 
 stowsh_help() {
