@@ -59,7 +59,7 @@ stowsh_install() {
     target=$( "$rpcmd" "${2-$PWD}" )
     local commands=()
 
-    cd "$pkg" || return 1
+    pushd "$pkg" > /dev/null || return 1
 
     while IFS= read -r -d '' d; do
         commands+=("mkdir -p '$target/$d'")
@@ -77,6 +77,7 @@ stowsh_install() {
             if [[ $VERBOSE -gt 0 ]] ; then echoerr "$targetf already exists." ; fi
             if [[ ! $SKIP -eq 1 ]]; then
                 echoerr "Aborting. Rerun with the -s flag to skip errors.";
+                popd > /dev/null
                 return
             fi
         fi
@@ -85,6 +86,8 @@ stowsh_install() {
     for cmd in "${commands[@]}"; do
         _runcommands "$cmd"
     done;
+
+    popd > /dev/null
 }
 
 stowsh_uninstall() {
@@ -94,7 +97,7 @@ stowsh_uninstall() {
     target=$( "$rpcmd" "${2-$PWD}" )
     local commands=()
 
-    cd "$pkg" || return 1
+    pushd "$pkg" > /dev/null || return 1
 
     while IFS= read -r -d '' f; do
         local targetf="$target/$f"
@@ -104,12 +107,14 @@ stowsh_uninstall() {
             echoerr "$targetf does not point to to $($rpcmd "$f")."
             if [[ ! $SKIP -eq 1 ]]; then
                 echoerr "Aborting. Rerun with the -s flag to skip errors.";
+                popd > /dev/null
                 return
             fi
         elif [[ ! -f "$targetf" ]] ; then
             echoerr "$targetf does not exist. Nothing to do."
             if [[ ! $SKIP -eq 1 ]]; then
                 echoerr "Aborting. Rerun with the -s flag to skip errors.";
+                popd > /dev/null
                 return
             fi
         fi
@@ -122,6 +127,8 @@ stowsh_uninstall() {
     for cmd in "${commands[@]}"; do
         _runcommands "$cmd"
     done;
+
+    pushd > /dev/null
 }
 
 stowsh_help() {
@@ -181,3 +188,5 @@ if [ "$0" = "$BASH_SOURCE" ]; then
         fi
     done
 fi
+
+# vi:et:sw=4
