@@ -1,3 +1,5 @@
+NB: This is a fork with some changes to the default behaviour of the original script.
+
 # stowsh
 
 [![Build Status](https://travis-ci.org/williamsmj/stowsh.svg?branch=master)](https://travis-ci.org/williamsmj/stowsh)
