@@ -74,7 +74,7 @@ stowsh_install() {
         if [[ ! -f "$targetf" ]] ; then
             commands+=("ln -s '$relative' '$targetf'")
         else
-            echoerr "$targetf already exists."
+            if [[ $VERBOSE -gt 0 ]] ; then echoerr "$targetf already exists." ; fi
             if [[ ! $SKIP -eq 1 ]]; then
                 echoerr "Aborting. Rerun with the -s flag to skip errors.";
                 return
@@ -131,8 +131,8 @@ stowsh_help() {
 if [ "$0" = "$BASH_SOURCE" ]; then
     UNINSTALL=0
     DRYRUN=0
-    SKIP=0
-    TARGET="$PWD"
+    SKIP=1
+    TARGET="$HOME"
     PACKAGES=()
     while [[ "$@" ]]; do
         if [[ $1 =~ ^- ]]; then
